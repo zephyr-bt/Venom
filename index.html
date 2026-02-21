@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Venom | BioLink</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #030303;
+            --glass-surface: rgba(10, 10, 12, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #FFFFFF;
+            --text-secondary: #8A8A8E;
+            --link-accent: #38BDF8; 
+            --neon-red: #FF003C;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Ambient Glow */
+        .ambient-glow {
+            position: absolute;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(255, 0, 60, 0.15) 0%, transparent 60%);
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* The Main Card */
+        .premium-card {
+            width: 420px;
+            background: var(--glass-surface);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+            z-index: 10;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+        /* =========================================
+           RED GALAXY EFFECT ENGINE
+           ========================================= */
+        .profile-effect-wrapper {
+            position: absolute;
+            inset: 0;
+            z-index: 1; /* Sits behind the text, over the background */
+            overflow: hidden;
+            pointer-events: none;
+            border-radius: 24px;
+            /* Deep crimson nebula background glow */
+            background: radial-gradient(ellipse at center, rgba(150, 0, 20, 0.15) 0%, transparent 70%);
+        }
+
+        /* The rotating space container */
+        .galaxy-core {
+            position: absolute;
+            width: 250%; 
+            height: 250%;
+            top: -75%; 
+            left: -75%;
+            animation: slowRotate 100s linear infinite;
+        }
+
+        @keyframes slowRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* The individual stars */
+        .galaxy-star {
+            position: absolute;
+            border-radius: 50%;
+            animation: starPulse ease-in-out infinite alternate;
+        }
+
+        @keyframes starPulse {
+            0% { opacity: 0.2; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1.3); }
+        }
+        /* ========================================= */
+
+        /* Standard Profile Layout */
+        .banner-layer {
+            height: 140px; width: 100%;
+            background-size: cover; background-position: center;
+            position: relative;
+            z-index: 5;
+        }
+        .banner-layer::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(180deg, transparent 0%, rgba(10, 10, 12, 1) 100%);
+        }
+
+        .profile-core {
+            padding: 0 32px 32px;
+            margin-top: -55px;
+            position: relative;
+            z-index: 10; /* Ensures content is ABOVE the galaxy effect */
+        }
+
+        /* Avatar */
+        .avatar-wrap {
+            position: relative;
+            width: 96px; height: 96px;
+            border-radius: 20px;
+            background: rgba(0,0,0,0.6);
+            padding: 4px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .avatar { width: 100%; height: 100%; border-radius: 16px; object-fit: cover; background: var(--bg-base); }
+        .avatar-decoration { position: absolute; top: -18%; left: -18%; width: 136%; height: 136%; pointer-events: none; display: none; z-index: 15; }
+        
+        .status-indicator {
+            position: absolute; bottom: -6px; right: -6px;
+            width: 20px; height: 20px;
+            border-radius: 50%; border: 4px solid #0A0A0C;
+            background: #747f8d; z-index: 20;
+            transition: background 0.3s;
+        }
+        .online { background: #23a559; box-shadow: 0 0 10px rgba(35,165,89,0.4); }
+        .idle { background: #f0b232; }
+        .dnd { background: #f23f43; box-shadow: 0 0 10px rgba(242,63,67,0.4); }
+
+        /* Text Data */
+        .data-header { margin-top: 16px; }
+        .username-row { display: flex; align-items: center; gap: 12px; }
+        .username { font-size: 1.4rem; font-weight: 600; letter-spacing: -0.5px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        
+        .badges { display: flex; gap: 6px; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 8px; border: 1px solid var(--glass-border); }
+        .badge-icon { width: 18px; height: 18px; object-fit: contain; }
+
+        .custom-status { font-size: 0.9rem; color: var(--text-secondary); margin-top: 4px; font-weight: 400; }
+        
+        /* Bio */
+        .bio-block { margin-top: 20px; font-size: 0.9rem; line-height: 1.6; color: #A1A1A6; white-space: pre-wrap; }
+        .bio-link { color: var(--link-accent); text-decoration: none; font-weight: 500; transition: color 0.2s; }
+        .bio-link:hover { color: #7DD3FC; text-shadow: 0 0 8px rgba(56, 189, 248, 0.4); }
+
+        /* Button */
+        .action-row { margin-top: 32px; }
+        .connect-btn {
+            display: flex; justify-content: center; align-items: center;
+            width: 100%; padding: 14px;
+            background: rgba(255, 0, 60, 0.05);
+            border: 1px solid rgba(255, 0, 60, 0.2); border-radius: 12px;
+            color: var(--text-primary); font-weight: 500; text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .connect-btn:hover {
+            background: rgba(255, 0, 60, 0.15); border-color: var(--neon-red); 
+            transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 0, 60, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-glow"></div>
+
+    <div class="premium-card">
+        
+        <div class="profile-effect-wrapper">
+            <div class="galaxy-core" id="galaxy-core"></div>
+        </div>
+
+        <div class="banner-layer" id="banner"></div>
+        
+        <div class="profile-core">
+            <div class="avatar-wrap">
+                <img id="avatar" src="" class="avatar" alt="Avatar">
+                <img id="avatar-decoration" src="" class="avatar-decoration" alt="Effect">
+                <div id="status-indicator" class="status-indicator"></div>
+            </div>
+
+            <div class="data-header">
+                <div class="username-row">
+                    <h1 class="username" id="username">Fetching...</h1>
+                    <div class="badges" id="badges-container"></div>
+                </div>
+                <div class="custom-status" id="custom-status">Entering domain...</div>
+            </div>
+
+            <div class="bio-block" id="bio-content">Retrieving system data...</div>
+
+            <div class="action-row">
+                <a href="https://discord.com/users/1167477458765881405" target="_blank" class="connect-btn">
+                    Connect via Discord
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- RED GALAXY INJECTION ---
+        function initRedGalaxy() {
+            const core = document.getElementById('galaxy-core');
+            const starCount = 70; // Adjust for more/less density
+            
+            for(let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'galaxy-star';
+                
+                // Randomize sizes and speeds
+                const size = Math.random() * 2.5 + 0.5;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDuration = (Math.random() * 3 + 1.5) + 's';
+                star.style.animationDelay = (Math.random() * 5) + 's';
+                
+                // Creates depth by mixing white-hot stars, crimson stars, and dark red background stars
+                const colorRoll = Math.random();
+                if (colorRoll > 0.8) {
+                    star.style.background = '#FFFFFF';
+                    star.style.boxShadow = '0 0 8px #FFF, 0 0 15px #FF003C';
+                } else if (colorRoll > 0.4) {
+                    star.style.background = '#FF003C';
+                    star.style.boxShadow = '0 0 10px #FF003C';
+                } else {
+                    star.style.background = '#8B0000';
+                    star.style.boxShadow = '0 0 5px #8B0000';
+                }
+                
+                core.appendChild(star);
+            }
+        }
+        initRedGalaxy();
+
+        // --- DISCORD DATA CONFIG ---
+        const USER_ID = "1167477458765881405";
+        const FALLBACK_BANNER = "https://i.pinimg.com/originals/a0/62/79/a06279e8310ba0a6e3d5402bd210874e.gif";
+
+        const els = {
+            banner: document.getElementById('banner'),
+            avatar: document.getElementById('avatar'),
+            decoration: document.getElementById('avatar-decoration'),
+            statusInd: document.getElementById('status-indicator'),
+            username: document.getElementById('username'),
+            customStatus: document.getElementById('custom-status'),
+            bioContent: document.getElementById('bio-content'),
+            badgesContainer: document.getElementById('badges-container')
+        };
+
+        function parseLinks(text) {
+            if (!text) return "System initialized.";
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            return text.replace(urlRegex, '<a href="$1" target="_blank" class="bio-link">$1</a>');
+        }
+
+        async function fetchDiscordData() {
+            try {
+                const res = await fetch(`https://dcdn.dstn.to/profile/${USER_ID}`);
+                if (!res.ok) throw new Error("API Proxy Blocked");
+                const data = await res.json();
+                
+                const user = data.user;
+                els.bioContent.innerHTML = parseLinks(user.bio);
+
+                if (user.banner) {
+                    const ext = user.banner.startsWith("a_") ? "gif" : "png";
+                    els.banner.style.backgroundImage = `url('https://cdn.discordapp.com/banners/${USER_ID}/${user.banner}.${ext}?size=1024')`;
+                } else {
+                    els.banner.style.backgroundImage = `url('${FALLBACK_BANNER}')`;
+                }
+
+                els.badgesContainer.innerHTML = ''; 
+                if (data.badges && data.badges.length > 0) {
+                    data.badges.forEach(badge => {
+                        const img = document.createElement('img');
+                        img.src = `https://cdn.discordapp.com/badge-icons/${badge.icon}.png`;
+                        img.className = 'badge-icon';
+                        img.title = badge.description;
+                        els.badgesContainer.appendChild(img);
+                    });
+                } else {
+                    els.badgesContainer.style.display = 'none';
+                }
+            } catch (err) {
+                console.error("Fetch error:", err);
+                els.bioContent.innerHTML = "System Error: Data stream interrupted.";
+                els.banner.style.backgroundImage = `url('${FALLBACK_BANNER}')`;
+                els.badgesContainer.style.display = 'none';
+            }
+        }
+
+        const ws = new WebSocket("wss://api.lanyard.rest/socket");
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.op === 1) {
+                ws.send(JSON.stringify({ op: 2, d: { subscribe_to_id: USER_ID } }));
+            }
+
+            if (data.op === 0 && (data.t === "INIT_STATE" || data.t === "PRESENCE_UPDATE")) {
+                const u = data.d.discord_user;
+                const status = data.d.discord_status;
+                const activity = data.d.activities.find(a => a.type === 4);
+
+                els.username.innerText = u.display_name || u.username;
+                els.customStatus.innerText = activity?.state || "Navigating the void.";
+                els.avatar.src = `https://cdn.discordapp.com/avatars/${USER_ID}/${u.avatar}.png?size=512`;
+                els.statusInd.className = `status-indicator ${status}`;
+
+                if (u.avatar_decoration_data) {
+                    els.decoration.src = `https://cdn.discordapp.com/avatar-decoration-presets/${u.avatar_decoration_data.asset}.png`;
+                    els.decoration.style.display = "block";
+                } else {
+                    els.decoration.style.display = "none";
+                }
+            }
+        };
+
+        setInterval(() => { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ op: 3 })); }, 30000);
+        fetchDiscordData();
+    </script>
+</body>
+</html>
